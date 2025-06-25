@@ -18,4 +18,4 @@ def get_file_content(working_directory, file_path=None):
                     file_content_string += f'\n[...File "{file_path}" truncated at 10000 characters]'
             return file_content_string  
     except Exception as e:
-        print("Error:" + e)
+        print("Error:" + str(e))
