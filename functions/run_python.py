@@ -1,15 +1,13 @@
 import os
+import subprocess
 
 # function for safely executing things by aigent
-def execute():
-    # do the things that have to be done
-    return 
+def execute(path_to_exec_file):
+    subprocess.run("p3", path_to_exec_file, capture_output=True, timeout=30)
+    exec_out = f"STDOUT: {subprocess.CompletedProcess.stdout}"
+    exec_err = f"STDERR: {subprocess.CompletedProcess.stderr}"
 
-
-
-
-
-
+    return exec_out, exec_err
 
 
 # exported function for use by aigent
@@ -29,6 +27,6 @@ def run_python_file(working_directory, file_path):
             elif not file_abspath.endswith(".py"):
                 return f'Error: "{file_path}" is not a Python file.'
             else:
-                return execute()
+                return execute(file_abspath)
     except Exception as e:
         print(f"Error: executing Python file: {e}")
