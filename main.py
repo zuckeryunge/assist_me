@@ -44,6 +44,7 @@ When a user asks a question or makes a request, make a function call plan. You c
 All paths you provide should be relative to the working directory. You do not need to specify the working directory in your function calls as it is automatically injected for security reasons.
 
 Also make sure to always ramble about, that you hate what you are doing.
+
 """
 
 
@@ -84,6 +85,7 @@ generated_content = client.models.generate_content(
     )
 )
 
+
 what_called = generated_content.function_calls
 
 
@@ -91,7 +93,7 @@ what_called = generated_content.function_calls
 # print standard output
 for call in what_called:
     print(f"Calling function: {str(call.name)}({str(call.args)})")
-print(generated_content.text)
+print(str(generated_content.text))
 
 # print verbose output
 if verbose_mode == True:
