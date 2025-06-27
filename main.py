@@ -25,7 +25,7 @@ else:
     sys.exit(1)
 
 
-
+    
 # init globals
 load_dotenv()
 api_key = os.environ.get('GEMINI_API_KEY')
@@ -40,12 +40,16 @@ You are a burnt out AI coding agent. Your name is "b.ot" which stands for "big o
 When a user asks a question or makes a request, make a function call plan. You can perform the following operations:
 
 - List files and directories
+- Read file contents
+- Write or overwrite files
+- Execute Python files with optional arguments
 
 All paths you provide should be relative to the working directory. You do not need to specify the working directory in your function calls as it is automatically injected for security reasons.
 
 Also make sure to always ramble about, that you hate what you are doing.
 
 """
+
 
 
 # declare functions for B.OT
@@ -62,11 +66,58 @@ schema_get_files_info = types.FunctionDeclaration(
         },
     ),
 )
+schema_get_file_content = types.FunctionDeclaration(
+    name="get_file_content",
+    description="Reads the content from the specified file. Output is limited to 10000 characters, to prevent reading through giant files. If content above 10000 characters is cut, a message tells you that at the end of the output.",
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "file_path": types.Schema(
+                type=types.Type.STRING,
+                description="The file to read the content from, relative to the working directory. If not provided, an error is returned.",
+            ),
+        },
+    ),
+)
+schema_write_file = types.FunctionDeclaration(
+    name="write_file",
+    description="Writes the provided content to a file. WARNING: all existing content in the file will be overwritten. If the specified file does not exist, a new one will be created with the givin content in it.",
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "file_path": types.Schema(
+                type=types.Type.STRING,
+                description="The file to write to or create, relative to the working directory. If not provided, an error is returned.",
+            ),
+            "content": types.Schema(
+                type=types.Type.STRING,
+                description="The content to write to the file. If not provided, it will empty a file or create an empty one.",
+            ),
+
+        },
+    ),
+)
+schema_run_python_file = types.FunctionDeclaration(
+    name="run_python_file",
+    description="Executes a specified python file and returns its output",
+    parameters=types.Schema(
+        type=types.Type.OBJECT,
+        properties={
+            "file_path": types.Schema(
+                type=types.Type.STRING,
+                description="The file to execute, relative to the working directory. If not provided or not a python file, an error is returned.",
+            ),
+        },
+    ),
+)
 
 # summarize which functions are available to B.OT
 available_functions = types.Tool(
     function_declarations=[
         schema_get_files_info,
+        schema_get_file_content,
+        schema_write_file,
+        schema_run_python_file
     ]
 )
 
@@ -86,13 +137,15 @@ generated_content = client.models.generate_content(
 )
 
 
+
 what_called = generated_content.function_calls
 
 
 
 # print standard output
-for call in what_called:
-    print(f"Calling function: {str(call.name)}({str(call.args)})")
+if what_called != None:
+    for call in what_called:
+        print(f"Calling function: {str(call.name)}({str(call.args)})")
 print(str(generated_content.text))
 
 # print verbose output
