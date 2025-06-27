@@ -1,4 +1,5 @@
 # import dependencies
+from logging import fatal
 import sys
 import os
 from dotenv import load_dotenv
@@ -6,9 +7,15 @@ from dotenv import load_dotenv
 from google import genai
 from google.genai import types
 
+from functions.get_files_info import get_files_info
+from functions.get_file_content import get_file_content
+from functions.write_file import write_file
+from functions.run_python import run_python_file
+
+
 # check basecase
 # init or exit
-verbose_mode = False
+verbose = False
 my_prompt = ""
 
 if len(sys.argv) > 1 and type(sys.argv[1]) == str:
@@ -16,7 +23,7 @@ if len(sys.argv) > 1 and type(sys.argv[1]) == str:
     if len(sys.argv) > 2:
         match(sys.argv[2]):
             case("--verbose"):
-                verbose_mode = True
+                verbose = True
             case _:
                 print("ERROR! main.py says: 'Wrong flag used'")
                 sys.exit(1)
@@ -123,6 +130,48 @@ available_functions = types.Tool(
 
 
 
+def call_function(function_call_part, verbose):
+    if verbose == True:
+        print(f"Calling function: {function_call_part.name}({function_call_part.args})")
+    else:
+        print(f"Calling function: {function_call_part.name}")
+    
+    function_register = {
+        "get_files_info" : get_files_info,
+        "get_file_content" : get_file_content,
+        "write_file" : write_file,
+        "run_python_file" : run_python_file
+        }
+
+    real_function = function_register[function_call_part.name]
+    if real_function == None:
+        return types.Content(
+            role="tool",
+            parts=[
+                types.Part.from_function_response(
+                    name=function_call_part.name,
+                    response={"error": f"Unknown function: {function_call_part.name}"},
+                )
+            ],
+        )
+
+    else:
+        function_result = real_function("./calculator", **function_call_part.args)
+        return types.Content(
+            role="tool",
+            parts=[
+                types.Part.from_function_response(
+                    name=function_call_part.name,
+                    response={"result": function_result},
+                )
+            ],
+        )
+
+
+
+
+
+
 # assign user input to B.OT
 messages_history = [types.Content(role="user", parts=[types.Part(text=my_prompt)])]
 
@@ -136,20 +185,22 @@ generated_content = client.models.generate_content(
     )
 )
 
-
-
-what_called = generated_content.function_calls
-
-
-
 # print standard output
-if what_called != None:
-    for call in what_called:
-        print(f"Calling function: {str(call.name)}({str(call.args)})")
 print(str(generated_content.text))
 
+#call function, that B.OT wants to
+function_call_all = generated_content.function_calls
+if function_call_all != None:
+    for function_call_part in function_call_all:
+        function_response = call_function(function_call_part, verbose)
+        if function_response.parts[0].function_response.response == None:
+            raise Exception("NO RESPONSE HERE!")
+        print(f"-> {function_response.parts[0].function_response.response}")
+
+
+
 # print verbose output
-if verbose_mode == True:
+if verbose == True:
     tok_prompt = generated_content.usage_metadata.prompt_token_count
     tok_response = generated_content.usage_metadata.candidates_token_count
     print(f"\nUser prompt: {my_prompt}\nPrompt tokens: {tok_prompt}\nResponse tokens: {tok_response}\n\n")
