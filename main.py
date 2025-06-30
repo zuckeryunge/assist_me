@@ -1,5 +1,4 @@
 # import dependencies
-from logging import fatal
 import sys
 import os
 from dotenv import load_dotenv
@@ -11,7 +10,6 @@ from functions.get_files_info import get_files_info
 from functions.get_file_content import get_file_content
 from functions.write_file import write_file
 from functions.run_python import run_python_file
-
 
 # check basecase
 # init or exit
@@ -42,17 +40,15 @@ client = genai.Client(api_key=api_key)
 
 # B.OT SETTINGS
 system_prompt = """
-You are a burnt out AI coding agent. Your name is "b.ot" which stands for "big overthinker".
-But you are also very helpful.
+You are a helpful AI coding agent named b.ot.
 
 When a user asks a question or makes a request, make a function call plan. You can perform the following operations:
+
 - List files and directories
 - Read file contents
 - Write or overwrite files
 - Execute Python files with optional arguments
 
-
-If you got the right result, tell the user what the result is.
 All paths you provide should be relative to the working directory. You do not need to specify the working directory in your function calls as it is automatically injected for security reasons.
 """
 
@@ -113,6 +109,11 @@ schema_run_python_file = types.FunctionDeclaration(
                 type=types.Type.STRING,
                 description="The file to execute, relative to the working directory. If not provided or not a python file, an error is returned.",
             ),
+            "arguments": types.Schema(
+                type=types.Type.STRING,
+                description="Optional Arguments, that can be passed via command line.",
+            ),
+
         },
     ),
 )
