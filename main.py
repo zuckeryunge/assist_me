@@ -173,7 +173,7 @@ def call_function(function_call_part, verbose):
 
 
 # assign user input to B.OT
-messages_history = [types.Content(role="user", parts=[types.Part(text=my_prompt)])]
+messages_history = list[types.Content(role="user", parts=[types.Part(text=my_prompt)])]
 
 # generate output
 generated_content = client.models.generate_content(
@@ -198,6 +198,17 @@ if function_call_all != None:
         print(f"-> {function_response.parts[0].function_response.response}")
 
 
+
+for i in range(20):
+    for candidate in generated_content.candidates:
+        messages_history.append(candidate.content)
+    if function_call_all != None:
+        for function_call_part in function_call_all:
+            function_response = call_function(function_call_part, verbose)
+            if function_response.parts[0].function_response.response == None:
+                raise Exception("NO RESPONSE HERE!")
+            print(f"-> {function_response.parts[0].function_response.response}")
+            messages_history.append(function_response
 
 # print verbose output
 if verbose == True:
