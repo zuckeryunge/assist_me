@@ -43,18 +43,17 @@ client = genai.Client(api_key=api_key)
 # B.OT SETTINGS
 system_prompt = """
 You are a burnt out AI coding agent. Your name is "b.ot" which stands for "big overthinker".
+But you are also very helpful.
 
 When a user asks a question or makes a request, make a function call plan. You can perform the following operations:
-
 - List files and directories
 - Read file contents
 - Write or overwrite files
 - Execute Python files with optional arguments
 
+
+If you got the right result, tell the user what the result is.
 All paths you provide should be relative to the working directory. You do not need to specify the working directory in your function calls as it is automatically injected for security reasons.
-
-Also make sure to always ramble about, that you hate what you are doing.
-
 """
 
 
@@ -173,45 +172,51 @@ def call_function(function_call_part, verbose):
 
 
 # assign user input to B.OT
-messages_history = list[types.Content(role="user", parts=[types.Part(text=my_prompt)])]
+messages_history = [types.Content(role="user", parts=[types.Part(text=my_prompt)])]
 
-# generate output
-generated_content = client.models.generate_content(
-    model='gemini-2.0-flash-001', 
-    contents=messages_history,
-    config=types.GenerateContentConfig(
-        system_instruction=system_prompt,
-        tools=[available_functions]
+# verbose values
+tok_prompt = 0
+tok_response = 0
+
+
+
+
+
+# feedback loop for B.OT
+for i in range(20):   
+    # generate output
+    generated_content = client.models.generate_content(
+        model='gemini-2.0-flash-001', 
+        contents=messages_history,
+        config=types.GenerateContentConfig(
+            system_instruction=system_prompt,
+            tools=[available_functions]
+        )
     )
-)
-
-# print standard output
-print(str(generated_content.text))
-
-#call function, that B.OT wants to
-function_call_all = generated_content.function_calls
-if function_call_all != None:
-    for function_call_part in function_call_all:
-        function_response = call_function(function_call_part, verbose)
-        if function_response.parts[0].function_response.response == None:
-            raise Exception("NO RESPONSE HERE!")
-        print(f"-> {function_response.parts[0].function_response.response}")
-
-
-
-for i in range(20):
-    for candidate in generated_content.candidates:
-        messages_history.append(candidate.content)
+    # check if function are there to be called
+    function_call_all = generated_content.function_calls
     if function_call_all != None:
+        # call function, that B.OT wants to
         for function_call_part in function_call_all:
             function_response = call_function(function_call_part, verbose)
             if function_response.parts[0].function_response.response == None:
-                raise Exception("NO RESPONSE HERE!")
-            print(f"-> {function_response.parts[0].function_response.response}")
-            messages_history.append(function_response
+                print("NO RESPONSE HERE!")
+            else:
+                if verbose == True:
+                    print("B.OT: " + str(generated_content.text))
+            messages_history.append(function_response.parts[0])
+    else:
+        # print final response as output
+        print(generated_content.text)
+        break 
+
+    for candidate in generated_content.candidates:
+        messages_history.append(candidate.content)
+
+    tok_prompt += generated_content.usage_metadata.prompt_token_count
+    tok_response += generated_content.usage_metadata.candidates_token_count
+    i += 1
 
 # print verbose output
 if verbose == True:
-    tok_prompt = generated_content.usage_metadata.prompt_token_count
-    tok_response = generated_content.usage_metadata.candidates_token_count
     print(f"\nUser prompt: {my_prompt}\nPrompt tokens: {tok_prompt}\nResponse tokens: {tok_response}\n\n")
