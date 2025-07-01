@@ -2,10 +2,13 @@ import os
 import subprocess
 
 # function for safely executing things by aigent
-def execute(path_to_exec_file):
+def execute(path_to_exec_file, arguments):
     try:
-        exec_done = subprocess.run(["python3", path_to_exec_file], capture_output=True, timeout=30, check=True, text=True)
-
+        if arguments == None:
+            exec_done = subprocess.run(["python3", path_to_exec_file], capture_output=True, timeout=30, check=True, text=True)
+        else:
+             exec_done = subprocess.run(["python3", path_to_exec_file, arguments], capture_output=True, timeout=30, check=True, text=True)
+       
         if exec_done.stdout == "" and exec_done.stderr == "":
             result = "No output produced."
         else:
@@ -25,9 +28,9 @@ def execute(path_to_exec_file):
 
 
 
-# exported fun ction for use by aigent
+# exported function for use by aigent
 # also handles input errors
-def run_python_file(working_directory, file_path):
+def run_python_file(working_directory, file_path, arguments=None):
     try:
         message = "\n--------------- wrong input ---------------"
         result = "No output produced."
@@ -44,7 +47,7 @@ def run_python_file(working_directory, file_path):
                 elif not file_abspath.endswith(".py"):
                     result = f'Error: "{file_path}" is not a Python file.'
                 else:
-                    message, result = execute(os.path.join(working_directory, file_path))
+                    message, result = execute(os.path.join(working_directory, file_path), arguments)
 
         print(message)
         return result

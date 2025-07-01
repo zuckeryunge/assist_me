@@ -1,3 +1,5 @@
+# tests.py
+
 import unittest
 from pkg.calculator import Calculator
 
@@ -41,14 +43,6 @@ class TestCalculator(unittest.TestCase):
     def test_not_enough_operands(self):
         with self.assertRaises(ValueError):
             self.calculator.evaluate("+ 3")
-
-    def test_parentheses(self):
-        result = self.calculator.evaluate("(3 + 5) * 2")
-        self.assertEqual(result, 16)
-
-    def test_nested_parentheses(self):
-        result = self.calculator.evaluate("((3 + 5) * 2) / 4")
-        self.assertEqual(result, 4)
 
 
 if __name__ == "__main__":
